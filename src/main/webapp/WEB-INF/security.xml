@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:mvc="http://www.springframework.org/schema/mvc" xmlns:sec="http://www.springframework.org/schema/security"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:p="http://www.springframework.org/schema/p"
+	xsi:schemaLocation="
+        http://www.springframework.org/schema/beans     
+        http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+        http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context-3.0.xsd
+        http://www.springframework.org/schema/mvc
+        http://www.springframework.org/schema/mvc/spring-mvc-3.0.xsd
+        http://www.springframework.org/schema/security
+        http://www.springframework.org/schema/security/spring-security-3.2.xsd">
+        
+        
+	<!-- Security -->
+
+	<sec:http disable-url-rewriting="true" entry-point-ref="forbiddenEntryPoint"
+		use-expressions="true" create-session="never">
+		<sec:anonymous enabled="false" />
+		<sec:session-management
+			session-fixation-protection="none" />
+		<sec:custom-filter ref="hmacAuthenticationFilter"
+			position="FORM_LOGIN_FILTER" />
+		<!-- <sec:intercept-url pattern="/**" requires-channel="https" /> -->
+		
+		<sec:intercept-url pattern="/" method="HEAD" access="permitAll" />
+		<sec:intercept-url pattern="/dashboard/" access="hasAnyRole('ROLE_USER', 'ROLE_ADMIN')" />
+		<sec:intercept-url pattern="/order/**" access="hasRole('ROLE_ADMIN')" method="DELETE" />
+		<sec:intercept-url pattern="/**" access="isFullyAuthenticated()" />
+	</sec:http>
+
+
+	<sec:authentication-manager alias="coffeeprojectAuthenticationManager"
+		erase-credentials="false">
+		<sec:authentication-provider ref="coffeeprojectAuthenticationProvider" />
+	</sec:authentication-manager>
+
+
+	<bean id="forbiddenEntryPoint"
+		class="org.springframework.security.web.authentication.Http403ForbiddenEntryPoint" />
+
+
+	<bean id="coffeeprojectAuthenticationProvider"
+		class="com.dachser.coffeeproject.rest.security.HMACAuthenticationProvider">
+		<property name="userSecurityService" ref="dumbUserSecurityService" />
+	</bean>
+
+
+	<bean id="hmacAuthenticationFilter" class="com.dachser.coffeeproject.rest.security.HMACAuthenticationFilter">
+		<constructor-arg name="defaultFilterProcessesUrl"
+			value="/" />
+		<property name="authenticationManager" ref="coffeeprojectAuthenticationManager" />
+		<property name="authenticationSuccessHandler">
+			<!-- To prevent redirection ! -->
+			<bean
+				class="org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler">
+				<property name="redirectStrategy">
+					<bean class="com.dachser.coffeeproject.rest.security.HMACNoRedirectStrategy" />
+				</property>
+			</bean>
+		</property>
+	</bean>
+
+
+</beans>
+        
